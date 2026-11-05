@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block body %}
+<div id="cfg" data-categories="{{ categories | join('|') }}" hidden></div>
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><span class="logo">₹</span><div><b>Student Expense Tracker</b><small>Smart Money Management</small></div></div>
+    <nav>
+      <button data-view="dashboard" class="active">▦ Dashboard</button>
+      <button data-view="expenses">☰ Expenses</button>
+      <button data-view="budget">◎ Income &amp; Budget</button>
+      <button data-view="analytics">◔ Analytics</button>
+      <button data-view="ai">✦ AI Insights</button>
+      <button data-view="reports">▤ Reports</button>
+      <button data-view="profile">☺ Profile</button>
+    </nav>
+    <form method="post" action="{{ url_for('auth.logout') }}" class="logout">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn ghost block" type="submit">Log out</button>
+    </form>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+      <h2 id="pageTitle">Dashboard</h2>
+      <div class="top-actions">
+        <input type="month" id="monthPick" aria-label="Month">
+        <button class="btn primary" id="addBtn">+ Add expense</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section id="view-dashboard" class="view">
+        <p class="greet">Hello, <b>{{ current_user.name.split(' ')[0] }}</b> 👋</p>
+        <div class="grid4" id="stats"></div>
+        <div class="card"><div class="row"><b>Budget used</b><span id="budgetText" class="muted"></span></div><div class="bar"><i id="budgetBar"></i></div></div>
+        <div class="grid2">
+          <div class="card"><h3>Spending by category</h3><div class="chartbox"><canvas id="chDonut"></canvas><p class="empty">No expenses this month yet.</p></div></div>
+          <div class="card"><h3>Last 6 months</h3><div class="chartbox"><canvas id="chMonthly"></canvas><p class="empty">No data yet.</p></div></div>
+        </div>
+        <div class="card"><h3>Recent expenses</h3><div id="recent"></div></div>
+      </section>
+
+      <section id="view-expenses" class="view hidden">
+        <div class="card filters">
+          <select id="fScope"><option value="month">Selected month</option><option value="all">All time</option></select>
+          <select id="fCat"><option value="">All categories</option></select>
+          <input id="fQ" type="search" placeholder="Search description…">
+        </div>
+        <div class="card"><div id="expList"></div></div>
+      </section>
+
+      <section id="view-budget" class="view hidden">
+        <div class="card narrow">
+          <h3>Pocket money &amp; budget</h3>
+          <p class="muted" id="planNote">Set your income and budget for the selected month.</p>
+          <form id="planForm">
+            <label>Monthly pocket money / income (₹)<input type="number" name="income" min="0" step="0.01" required></label>
+            <label>Monthly budget (₹)<input type="number" name="budget" min="0" step="0.01" required></label>
+            <button class="btn primary" type="submit">Save</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="view-analytics" class="view hidden">
+        <div class="grid2">
+          <div class="card"><h3>Category-wise spending</h3><div class="chartbox"><canvas id="chCats"></canvas><p class="empty">No data yet.</p></div></div>
+          <div class="card"><h3>Daily spending</h3><div class="chartbox"><canvas id="chDaily"></canvas><p class="empty">No data yet.</p></div></div>
+        </div>
+        <div class="card"><h3>Category breakdown</h3><div id="catTable"></div></div>
+      </section>
+
+      <section id="view-ai" class="view hidden">
+        <div class="grid2">
+          <div class="card predict"><h3>Next month prediction</h3><div id="predBox"></div></div>
+          <div class="card"><h3>Spending history &amp; forecast</h3><div class="chartbox"><canvas id="chPred"></canvas><p class="empty">Add expenses to see a forecast.</p></div></div>
+        </div>
+        <div class="card"><h3>Smart saving suggestions</h3><div id="tips"></div></div>
+      </section>
+
+      <section id="view-reports" class="view hidden">
+        <div class="card" id="reportBox"></div>
+        <div class="actions no-print">
+          <button class="btn primary" id="printBtn">Print / Save as PDF</button>
+          <a class="btn ghost" id="csvMonth" href="#">Download CSV (this month)</a>
+          <a class="btn ghost" href="/api/export.csv?month=all">Download CSV (all time)</a>
+        </div>
+      </section>
+
+      <section id="view-profile" class="view hidden">
+        <div class="grid2">
+          <div class="card"><h3>Student profile</h3>
+            <form id="profileForm">
+              <label>Full name<input name="name" required minlength="2" maxlength="80"></label>
+              <label>Email<input name="email" disabled></label>
+              <label>Course<input name="course" maxlength="80"></label>
+              <label>College / University<input name="college" maxlength="120"></label>
+              <button class="btn primary" type="submit">Save profile</button>
+            </form>
+          </div>
+          <div class="card"><h3>Change password</h3>
+            <form id="pwForm">
+              <label>Current password<input type="password" name="current_password" required autocomplete="current-password"></label>
+              <label>New password<input type="password" name="new_password" required minlength="8" autocomplete="new-password"></label>
+              <button class="btn primary" type="submit">Update password</button>
+            </form>
+            <p class="muted small">Currency: Indian Rupee (₹). Member since <span id="joined"></span>.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<dialog id="expModal">
+  <form id="expForm" method="dialog">
+    <h3 id="modalTitle">Add expense</h3>
+    <label>Amount (₹)<input type="number" name="amount" min="0.01" step="0.01" required></label>
+    <label>Category<select name="category" required></select></label>
+    <label>Date<input type="date" name="date" required></label>
+    <label>Description <span class="opt">(optional)</span><input name="description" maxlength="200"></label>
+    <div class="row end"><button class="btn ghost" type="button" id="cancelExp">Cancel</button><button class="btn primary" type="submit">Save</button></div>
+  </form>
+</dialog>
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}
